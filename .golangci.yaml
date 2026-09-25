@@ -1,0 +1,31 @@
+version: "2"
+
+# Minimum viable linter set. Grows as the codebase does — mirrors the
+# subset of strategist-skill's list that is universally useful.
+linters:
+  enable:
+    - errcheck
+    - gosec
+    - staticcheck
+    - govet
+    - revive
+    - misspell
+    - ineffassign
+    - unconvert
+  settings:
+    errcheck:
+      # Type assertions kept strict; blank assignment is our documented
+      # "best-effort" signal (defer close, etc.) and is not a lint bug.
+      check-type-assertions: true
+      check-blank: false
+    gosec:
+      excludes:
+        - G301 # CLI tool creates project dirs; 0755 is intentional.
+        - G302 # CLI tool creates config files; 0644 is intentional.
+        - G306 # CLI tool creates config files; 0644 is intentional.
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck

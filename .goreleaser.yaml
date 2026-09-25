@@ -1,0 +1,64 @@
+version: 2
+
+project_name: skillhire
+
+before:
+  hooks:
+    # Do not run `go mod tidy` here — the tagged commit's module state must
+    # not silently drift at release time.
+    - go mod download
+    - go mod verify
+    # Produce the skill packs alongside the CLI binaries so they land in
+    # dist/ and are picked up by the extra_files rule below.
+    - go build -o bin/skillhire ./cmd/skillhire
+    - bash scripts/pack-skills.sh
+
+builds:
+  - id: skillhire
+    main: ./cmd/skillhire
+    binary: skillhire
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+    # Reproducibility: without this the embedded build timestamp is "now".
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: skillhire-binary
+    formats: [binary]
+    name_template: "skillhire-{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: SHA256SUMS
+  algorithm: sha256
+
+# Ship the skill packs produced by the pre-build hook as regular release
+# assets. Consumers download them by name, verify the .sha256 companion,
+# and install them without needing the CLI to reach out to the network.
+release:
+  github:
+    owner: SergioLacerda
+    name: skill-for-hire
+  draft: false
+  replace_existing_artifacts: true
+  extra_files:
+    - glob: "dist/*.tar.gz"
+    - glob: "dist/*.tar.gz.sha256"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
