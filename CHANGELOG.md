@@ -5,6 +5,25 @@ Todas as mudanças relevantes deste projeto são registradas aqui, seguindo
 
 ## [Unreleased]
 
+### Added — Batch 4 (treasure-chest runtime import)
+
+- **Domínio treasure-chest migrado** do repositório `strategist-skill`:
+  72 arquivos Go, ~14.810 LOC (2 pacotes: `runtime` + `runtime/domain`)
+  em `skills/treasure-chest/runtime/`. O acoplamento residual com
+  `internal/domain` do fonte foi substituído por
+  `runtime/domain/vocab.go` (22 linhas, 7 constantes). Zero outro
+  acoplamento com o strategist-skill.
+- **Adapter Knowledge API** (`runtime/adapter.go`) implementa
+  `KnowledgeProvider` end-to-end (Prepare/Search/Refresh/Status/
+  Explain) sobre os loaders existentes do domínio, com envelope
+  completo em toda resposta.
+- **CLI standalone** `cmd/treasure-chest/` — subcomandos `prepare`,
+  `search`, `status`, `explain`, `version`; flag `--json` universal.
+- **`treasure-chest` bumped para `0.2.0`**; skillhire.lock regenerado.
+- **Pack estendido**: `internal/pack/pack.go` inclui `runtime/` e
+  `contracts/` no default include ORKA + Skills-for-Hire.
+- Nova dependência: `github.com/stretchr/testify` (via go.mod tidy).
+
 ### Added — Batch 3 (Consumer verify + quickstart)
 
 - **CLI** `skillhire verify <archive.tar.gz>...` — cross-check digest

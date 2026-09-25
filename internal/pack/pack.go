@@ -52,8 +52,11 @@ type Result struct {
 	Contents     []string
 }
 
-// defaultInclude is the ORKA canonical top-level set. Each entry is
-// tried as a file first and, failing that, a directory tree.
+// defaultInclude is the ORKA canonical top-level set plus a few
+// Skills-for-Hire extensions used by skills that ship runtime code.
+// Each entry is tried as a file first and, failing that, a directory
+// tree. Missing entries are silently skipped so a hello-world skill
+// without runtime/ still packs cleanly.
 var defaultInclude = []string{
 	"SKILL.md",
 	"skill.yaml",
@@ -63,6 +66,8 @@ var defaultInclude = []string{
 	"scripts",
 	"templates",
 	"assets",
+	"runtime",   // Skills-for-Hire extension: skill-side Go/other runtime.
+	"contracts", // Skills-for-Hire extension: contracts/schemas.
 }
 
 // Pack builds the archive and returns the paths and digest.

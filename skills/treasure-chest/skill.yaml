@@ -3,7 +3,7 @@ kind: Skill
 
 metadata:
   name: treasure-chest
-  version: "0.1.0"
+  version: "0.2.0"
   displayName: Treasure Chest
   description: Mineração, curadoria, lifecycle e recuperação de conhecimento reutilizável.
   owner: skill-for-hire
