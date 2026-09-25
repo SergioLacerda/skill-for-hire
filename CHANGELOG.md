@@ -5,6 +5,20 @@ Todas as mudanças relevantes deste projeto são registradas aqui, seguindo
 
 ## [Unreleased]
 
+### Added — Batch 3 (Consumer verify + quickstart)
+
+- **CLI** `skillhire verify <archive.tar.gz>...` — cross-check digest
+  do arquivo contra `.sha256` companion e (quando presente) contra a
+  release manifest sidecar (`digest`, `size`). Aceita `.sha256` no
+  formato coreutils (`digest  filename`) e bare-digest; recusa arquivos
+  cujo companion referencia outro basename.
+- **`internal/verify`** com cobertura para: pack válido, arquivo
+  adulterado, manifest adulterado, `.sha256` spoofado com nome
+  incorreto, bare digest, e ausência de manifest.
+- **README raiz** ganhou seção "Consumindo um release" com fluxos
+  download → verify → extract (com e sem CLI) e nota sobre attestations
+  via `gh attestation verify`.
+
 ### Added — Batch 2 (Lockfile + provenance)
 
 - **Lockfile** `skillhire.lock` (schema `skillsforhire.dev/lockfile v1`):
