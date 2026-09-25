@@ -59,6 +59,7 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.tar.gz.sha256
+            dist/*.release.yaml
           if-no-files-found: error
           retention-days: 14
 

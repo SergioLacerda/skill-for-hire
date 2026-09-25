@@ -59,8 +59,71 @@ skill-for-hire/
 
 ## CLI
 
-O binário canônico será `skillhire`. Ainda não implementado — a superfície
-mínima planejada segue em `docs/cli.md`.
+O binário canônico é `skillhire`. Superfície mínima disponível hoje:
+
+```text
+skillhire validate <skill-dir>...       # package-static validation
+skillhire pack     <skill-dir>...       # produz <name>-<version>.tar.gz + .sha256 + .release.yaml
+skillhire lock     <release.yaml>...    # gera/verifica skillhire.lock
+skillhire verify   <archive.tar.gz>...  # valida um asset baixado
+skillhire version
+```
+
+A roadmap completa da CLI está em [`docs/cli.md`](docs/cli.md).
+
+## Consumindo um release
+
+Cada release publica, para cada skill, três arquivos:
+
+- `<name>-<version>.tar.gz` — pacote ORKA (raiz do tar = `<name>/`)
+- `<name>-<version>.tar.gz.sha256` — digest SHA-256
+- `<name>-<version>.release.yaml` — bundle manifest (schema, digest, size,
+  generator, `source_commit`, `contents[]`)
+
+Além disso: binários `skillhire-<os>-<arch>`, `SHA256SUMS`, SBOM
+CycloneDX e attestations de build provenance.
+
+### Download → verify → extract (sem depender do CLI)
+
+```bash
+VERSION=v0.0.1
+BASE="https://github.com/SergioLacerda/skill-for-hire/releases/download/${VERSION}"
+SKILL="atlas-0.1.0"
+
+curl -sSLO "${BASE}/${SKILL}.tar.gz"
+curl -sSLO "${BASE}/${SKILL}.tar.gz.sha256"
+
+sha256sum -c "${SKILL}.tar.gz.sha256"
+tar -xzf "${SKILL}.tar.gz"        # extrai para ./atlas/
+```
+
+### Download → verify → extract (com o CLI)
+
+```bash
+curl -sSLO "${BASE}/${SKILL}.tar.gz"
+curl -sSLO "${BASE}/${SKILL}.tar.gz.sha256"
+curl -sSLO "${BASE}/${SKILL}.release.yaml"
+
+skillhire verify "${SKILL}.tar.gz"    # cross-check archive x .sha256 x manifest
+tar -xzf "${SKILL}.tar.gz"
+```
+
+`skillhire verify` valida três coisas: o digest do tar.gz bate com o
+`.sha256`, o `.sha256` referencia o basename correto (não outro asset),
+e o `.release.yaml` (quando presente) concorda com digest e size.
+
+### Attestations (opcional)
+
+```bash
+gh attestation verify "${SKILL}.tar.gz" \
+  --repo SergioLacerda/skill-for-hire
+```
+
+### Lockfile
+
+Consumidores fixam versões em `skillhire.lock` (uma cópia por projeto).
+Este repositório mantém o próprio [`skillhire.lock`](skillhire.lock)
+como referência do formato e como gate de CI (`make lock-verify`).
 
 ## Documentação
 

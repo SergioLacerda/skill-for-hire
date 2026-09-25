@@ -58,6 +58,7 @@ release:
   extra_files:
     - glob: "packs/*.tar.gz"
     - glob: "packs/*.tar.gz.sha256"
+    - glob: "packs/*.release.yaml"
 
 changelog:
   sort: asc

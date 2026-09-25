@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/SergioLacerda/skill-for-hire/internal/pack"
 	"github.com/SergioLacerda/skill-for-hire/internal/skill"
@@ -30,21 +32,35 @@ func newPackCmd() *cobra.Command {
 					return fmt.Errorf("%s: package-static validation failed; refusing to pack", dir)
 				}
 				result, err := pack.Pack(pack.Options{
-					SkillDir:  dir,
-					SkillName: report.Manifest.Metadata.Name,
-					Version:   report.Manifest.Metadata.Version,
-					OutDir:    outDir,
+					SkillDir:     dir,
+					SkillName:    report.Manifest.Metadata.Name,
+					Version:      report.Manifest.Metadata.Version,
+					OutDir:       outDir,
+					Generator:    "skillhire@" + Version,
+					SourceCommit: currentCommit(),
 				})
 				if err != nil {
 					return fmt.Errorf("%s: %w", dir, err)
 				}
-				if _, err := fmt.Fprintf(out, "packed %s (%d bytes)\n  sha256: %s\n  digest: %s\n", result.ArchivePath, result.Size, result.SHA256, result.ChecksumPath); err != nil {
+				if _, err := fmt.Fprintf(out, "packed %s (%d bytes)\n  sha256:   %s\n  digest:   %s\n  manifest: %s\n", result.ArchivePath, result.Size, result.SHA256, result.ChecksumPath, result.ManifestPath); err != nil {
 					return fmt.Errorf("write pack summary: %w", err)
 				}
 			}
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&outDir, "out", "dist", "Directory where archives and checksums are written.")
+	cmd.Flags().StringVar(&outDir, "out", "dist", "Directory where archives, checksums and release manifests are written.")
 	return cmd
+}
+
+// currentCommit returns the working tree's HEAD sha, or "" when git is
+// unavailable or the tree is not a checkout. Best-effort by design —
+// the sidecar manifest is more useful when a commit is available, but
+// its absence must not fail the pack.
+func currentCommit() string {
+	out, err := exec.Command("git", "rev-parse", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }

@@ -43,7 +43,7 @@ include make/quality.mk
 include make/release.mk
 
 ci-lint: fmt-check mod-check vet build
-ci-test: test validate-skills pack-skills
+ci-test: test validate-skills pack-skills lock-verify
 
 ci: ci-lint ci-test
 
@@ -54,7 +54,9 @@ help:
 	@echo "  make lint             golangci-lint over the module"
 	@echo "  make fmt              Apply gofmt to tracked Go files"
 	@echo "  make validate-skills  Run 'skillhire validate' on every skills/<name>/"
-	@echo "  make pack-skills      Produce dist/<skill>-<version>.tar.gz + .sha256"
+	@echo "  make pack-skills      Produce dist/<skill>-<version>.{tar.gz,.sha256,.release.yaml}"
+	@echo "  make lock-skills      Build skillhire.lock from the pack outputs"
+	@echo "  make lock-verify      Fail if skillhire.lock does not match the pack outputs"
 	@echo "  make snapshot         Local release via goreleaser (no publish)"
 	@echo "  make release-check    Validate the goreleaser configuration"
 	@echo "  make clean            Remove build and dist artifacts"
