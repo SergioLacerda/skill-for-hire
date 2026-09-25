@@ -50,7 +50,9 @@ jobs:
 
       - name: Upload skill packs (dry-run artifact)
         # Publishing happens on tag; on push/PR we just make the packs
-        # available for review as a workflow artifact.
+        # available for review as a workflow artifact. `make pack-skills`
+        # writes to dist/ locally; goreleaser writes them to packs/ during
+        # a full snapshot.
         uses: actions/upload-artifact@v4
         with:
           name: skill-packs-${{ github.sha }}

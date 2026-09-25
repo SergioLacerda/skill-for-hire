@@ -34,4 +34,4 @@ release:
 	"$(GORELEASER)" release --clean
 
 clean:
-	rm -rf bin/ dist/
+	rm -rf bin/ dist/ packs/

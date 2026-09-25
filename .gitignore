@@ -31,6 +31,8 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Build and release outputs (produced by make build / goreleaser).
+# Build and release outputs (produced by make build / goreleaser /
+# scripts/pack-skills.sh).
 /bin/
 /dist/
+/packs/
