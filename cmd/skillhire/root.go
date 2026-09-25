@@ -18,6 +18,7 @@ func newRootCmd() *cobra.Command {
 	}
 	root.AddCommand(newValidateCmd())
 	root.AddCommand(newPackCmd())
+	root.AddCommand(newLockCmd())
 	root.AddCommand(newVersionCmd())
 	return root
 }

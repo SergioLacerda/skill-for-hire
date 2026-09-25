@@ -44,6 +44,8 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
+      id-token: write      # required for build-provenance OIDC token
+      attestations: write  # required to publish the attestation
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,7 +72,7 @@ jobs:
 
       - name: Run goreleaser
         # The `before` hook in .goreleaser.yaml builds skillhire and packs
-        # every skill into dist/, so the skills ship as release assets in
+        # every skill into packs/, so the skills ship as release assets in
         # the same publish step as the CLI binaries.
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -79,3 +81,34 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate SBOM
+        # CycloneDX SBOM covers the module graph of the skillhire CLI at
+        # this tag. Uploaded as a release asset so consumers can audit
+        # the transitive dependency set without cloning.
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: skillhire-${{ github.ref_name }}-sbom.cdx.json
+          output-file: skillhire-sbom.cdx.json
+          format: cyclonedx-json
+          upload-release-assets: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest build provenance (CLI binaries)
+        # SLSA-style build provenance for what goreleaser published. The
+        # checksum file already pairs each digest with its published
+        # asset name (skillhire-<os>-<arch>), so the attested subject
+        # matches what users actually download.
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      - name: Attest build provenance (skill packs)
+        # Skill packs live outside dist/ (§ .goreleaser.yaml explanation)
+        # and therefore aren't in SHA256SUMS. Attest them by path so the
+        # tar.gz + .release.yaml pair also carries provenance.
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            packs/*.tar.gz
+            packs/*.release.yaml

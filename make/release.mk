@@ -1,14 +1,26 @@
 .PHONY: pack-skills snapshot release-check release-dry-run release install-goreleaser clean
 
-# pack-skills produces dist/<skill>-<version>.tar.gz + .sha256 for each
-# discovered skill. This is what the release workflow uploads next to the
-# skillhire binary produced by goreleaser.
+# pack-skills produces dist/<skill>-<version>.tar.gz + .sha256 + .release.yaml
+# for each discovered skill. This is what the release workflow uploads
+# next to the skillhire binary produced by goreleaser.
 pack-skills: build
 	@if [ -z "$(SKILL_DIRS)" ]; then \
 		echo "pack-skills: no skills found under $(SKILLS_DIR)/" >&2; \
 		exit 1; \
 	fi
 	./$(SKILLHIRE_BIN) pack $(SKILL_DIRS) --out "$(DIST_DIR)"
+
+# lock-skills builds skillhire.lock from every release.yaml sidecar in
+# DIST_DIR/. Depends on pack-skills so the sidecars exist first.
+LOCK_FILE ?= skillhire.lock
+lock-skills: pack-skills
+	./$(SKILLHIRE_BIN) lock $(DIST_DIR)/*.release.yaml --out "$(LOCK_FILE)"
+
+# lock-verify fails when skillhire.lock differs from what the current
+# release.yaml sidecars would produce — the CI gate that catches an
+# unmerged pack without a matching lockfile bump.
+lock-verify: pack-skills
+	./$(SKILLHIRE_BIN) lock $(DIST_DIR)/*.release.yaml --out "$(LOCK_FILE)" --verify
 
 # install-goreleaser pins the version. Module-proxy hiccups occasionally
 # drop large downloads mid-stream; a bounded retry keeps CI quiet.

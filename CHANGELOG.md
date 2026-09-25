@@ -5,6 +5,24 @@ Todas as mudanças relevantes deste projeto são registradas aqui, seguindo
 
 ## [Unreleased]
 
+### Added — Batch 2 (Lockfile + provenance)
+
+- **Lockfile** `skillhire.lock` (schema `skillsforhire.dev/lockfile v1`):
+  consumer-side pin de skills por versão, digest sha256, size e source.
+  Renderização determinística (sort estável por nome, sem timestamps).
+- **CLI** `skillhire lock <release.yaml>... --out skillhire.lock` — lê
+  os sidecars produzidos por `skillhire pack` e emite/verifica o
+  lockfile.
+- **`--verify`** compara apenas o mapa `installed` (ignora `generator`,
+  que naturalmente varia entre local/CI/tag), com diff human-readable.
+- **`doctrine/lockfile.schema.json`** define o formato canônico.
+- **Make targets**: `lock-skills`, `lock-verify`; `ci-test` agora inclui
+  `lock-verify` como gate.
+- **Release workflow** ganha SBOM CycloneDX (`anchore/sbom-action`) e
+  duas etapas de `attest-build-provenance`: uma para os binários
+  (via `dist/SHA256SUMS`) e outra para os skill packs em `packs/`.
+  Permissões `id-token: write` e `attestations: write` habilitadas.
+
 ### Added
 
 - CLI `skillhire` com comandos `validate`, `pack` e `version`.
