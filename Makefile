@@ -34,7 +34,7 @@ SKILLS_DIR           ?= skills
 SKILL_DIRS            = $(shell ls -d $(SKILLS_DIR)/*/ 2>/dev/null | sed 's:/$$::')
 
 GORELEASER           := $(shell which goreleaser 2>/dev/null || echo $(GOPATH_BIN)/goreleaser)
-GORELEASER_VERSION   ?= v2.4.4
+GORELEASER_VERSION   ?= v2.12.2
 
 GOLANGCI_LINT        := $(shell which golangci-lint 2>/dev/null || echo $(GOPATH_BIN)/golangci-lint)
 
