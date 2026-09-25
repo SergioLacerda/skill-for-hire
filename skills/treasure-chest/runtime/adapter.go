@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -105,10 +104,12 @@ func (a *Adapter) Prepare(_ context.Context, req ka.PrepareRequest) (ka.PrepareR
 	}, nil
 }
 
-// Search returns jewels and potions whose Statement contains any of the
-// query concepts (case-insensitive substring). Naive on purpose — the
-// domain already exposes richer filters, and richer ranking belongs in
-// a later batch that wires the domain's scoring.
+// Search returns jewels and potions ranked by relevance to the query.
+// Ranking policy lives in ranking.go and is deterministic across runs:
+// same input query + same prepared index -> same result order.
+//
+// TokenBudget is applied AFTER ranking so consumers get the top N most
+// relevant items rather than the first N encountered.
 func (a *Adapter) Search(_ context.Context, q ka.Query) (ka.SearchResult, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -122,46 +123,48 @@ func (a *Adapter) Search(_ context.Context, q ka.Query) (ka.SearchResult, error)
 
 	for _, list := range a.jewelsByChest {
 		for _, j := range list {
-			if !matchesAny(j.Statement, needles) && !matchesAny(j.Kind, needles) {
+			score, matched := jewelMatch(j, needles)
+			if !matched {
 				continue
 			}
 			items = append(items, ka.Item{
 				ID:            j.ID,
 				Kind:          "jewel",
-				Score:         1.0,
+				Score:         score,
+				Trust:         trustToFloat(j.Trust),
 				Freshness:     ka.FreshnessFresh,
 				Applicability: j.Status,
-				Reason:        "statement or kind matched query concept",
+				Reason:        jewelReason(j, needles),
 				Source: ka.Source{
-					Path:   firstSourceRef(j.SourceRefs),
-					Digest: "",
+					Path: firstSourceRef(j.SourceRefs),
 				},
 			})
-			if q.TokenBudget > 0 && len(items) >= q.TokenBudget {
-				break
-			}
 		}
 	}
 	for _, list := range a.potionsByChest {
 		for _, p := range list {
-			if !matchesAny(p.WhenToUse, needles) && !matchesAny(p.RunbookRef, needles) {
+			score, matched := potionMatch(p, needles)
+			if !matched {
 				continue
 			}
 			items = append(items, ka.Item{
 				ID:            p.ID,
 				Kind:          "potion",
-				Score:         0.9,
+				Score:         score,
+				Trust:         trustToFloat(p.Trust),
 				Freshness:     ka.FreshnessFresh,
 				Applicability: p.Status,
-				Reason:        "when_to_use or runbook_ref matched query concept",
+				Reason:        "when_to_use/runbook_ref matched query",
 				Source: ka.Source{
 					Path: p.RunbookRef,
 				},
 			})
-			if q.TokenBudget > 0 && len(items) >= q.TokenBudget {
-				break
-			}
 		}
+	}
+
+	rankItemsInPlace(items)
+	if q.TokenBudget > 0 && len(items) > q.TokenBudget {
+		items = items[:q.TokenBudget]
 	}
 
 	return ka.SearchResult{
@@ -170,9 +173,39 @@ func (a *Adapter) Search(_ context.Context, q ka.Query) (ka.SearchResult, error)
 	}, nil
 }
 
-// Refresh currently reloads from the same root — the domain does not
-// yet expose a scoped diff. Callers see Added=0/Updated=0/Removed=0
-// until incremental refresh lands.
+// jewelReason builds a compact, human-facing string explaining why a
+// jewel matched. Keeps the ranking explainable (arch doc §5.5).
+func jewelReason(j Jewel, needles []string) string {
+	if len(needles) == 0 {
+		return "no filter — matched by default"
+	}
+	// Cheap short-circuit: identify the strongest signal.
+	for _, n := range needles {
+		if containsFold(j.Statement, n) {
+			return "statement matched query concept"
+		}
+		if anyContainsFold(j.Applicability.Scope, n) {
+			return "applicability.scope matched query concept"
+		}
+		if anyContainsFold(j.Applicability.AppliesWhen, n) {
+			return "applicability.applies_when matched query concept"
+		}
+		if containsFold(j.Kind, n) {
+			return "kind matched query concept"
+		}
+	}
+	return "curatorial score boost"
+}
+
+// Refresh reloads the index from the workspace and reports how it
+// changed against the previous prepared state. The full reload is
+// unavoidable until git-aware incremental refresh lands (see wave 4c
+// TODO), but consumers still see accurate added/updated/removed counts.
+//
+// "updated" here means "same ID, different content signature". Content
+// is signed by fmt.Sprintf on the Jewel/Potion struct — sufficient to
+// detect changes without a hash dependency, and Go's %v produces a
+// stable representation for the value types in this domain.
 func (a *Adapter) Refresh(ctx context.Context, scope ka.Scope) (ka.RefreshResult, error) {
 	root := scope.Root
 	if root == "" {
@@ -183,12 +216,67 @@ func (a *Adapter) Refresh(ctx context.Context, scope ka.Scope) (ka.RefreshResult
 	if root == "" {
 		return ka.RefreshResult{}, ka.ErrNotPrepared
 	}
+
+	oldSigs := a.snapshotSignatures()
+
 	if _, err := a.Prepare(ctx, ka.PrepareRequest{Root: root}); err != nil {
 		return ka.RefreshResult{}, err
 	}
+
+	added, updated, removed := diffSignatures(oldSigs, a.snapshotSignatures())
+
+	limitations := []string{}
+	if len(scope.Since) > 0 || len(scope.Paths) > 0 {
+		limitations = append(limitations,
+			"Refresh does full reindex; Scope.Since and Scope.Paths are ignored until git-aware refresh lands")
+	}
+
 	return ka.RefreshResult{
-		Envelope: a.envelope([]string{"refresh does full reindex; incremental diff pending"}),
+		Envelope: a.envelope(limitations),
+		Added:    added,
+		Updated:  updated,
+		Removed:  removed,
 	}, nil
+}
+
+// snapshotSignatures captures a content signature per item ID from the
+// currently prepared index. Called before and after reload so we can
+// diff without deep struct equality.
+func (a *Adapter) snapshotSignatures() map[string]string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	sig := make(map[string]string, len(a.byID))
+	for id, j := range a.byID {
+		sig[id] = fmt.Sprintf("%v", *j)
+	}
+	for _, list := range a.potionsByChest {
+		for i := range list {
+			p := &list[i]
+			sig[p.ID] = fmt.Sprintf("%v", *p)
+		}
+	}
+	return sig
+}
+
+// diffSignatures returns the added/updated/removed counts between two
+// signature snapshots. Deterministic; tests rely on the exact triple.
+func diffSignatures(oldSig, newSig map[string]string) (added, updated, removed int) {
+	for id, s := range newSig {
+		prev, ok := oldSig[id]
+		switch {
+		case !ok:
+			added++
+		case prev != s:
+			updated++
+		}
+	}
+	for id := range oldSig {
+		if _, ok := newSig[id]; !ok {
+			removed++
+		}
+	}
+	return added, updated, removed
 }
 
 // Status reports provider identity plus item counts. Consumers that
@@ -280,22 +368,6 @@ func searchNeedles(q ka.Query) []string {
 	out = append(out, q.Concepts...)
 	out = append(out, q.Symbols...)
 	return out
-}
-
-func matchesAny(haystack string, needles []string) bool {
-	if len(needles) == 0 {
-		return true // no filter = match all
-	}
-	hay := strings.ToLower(haystack)
-	for _, n := range needles {
-		if n == "" {
-			continue
-		}
-		if strings.Contains(hay, strings.ToLower(n)) {
-			return true
-		}
-	}
-	return false
 }
 
 func firstSourceRef(refs []string) string {

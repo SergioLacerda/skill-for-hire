@@ -32,6 +32,9 @@ type Options struct {
 	// Include restricts what goes into the archive. If empty, defaults to
 	// the ORKA canonical set.
 	Include []string
+	// IncludeTests keeps *_test.go files. Default false: consumers get a
+	// slim runtime pack; contributors clone the repo.
+	IncludeTests bool
 	// Timestamp is written into every tar header for reproducibility. If
 	// zero, the epoch is used.
 	Timestamp time.Time
@@ -103,6 +106,9 @@ func Pack(opts Options) (*Result, error) {
 		_ = gw.Close()
 		_ = f.Close()
 		return nil, err
+	}
+	if !opts.IncludeTests {
+		entries = filterOutTests(entries)
 	}
 	for _, e := range entries {
 		if err := writeEntry(tw, opts.SkillName, opts.SkillDir, e, opts.Timestamp); err != nil {
@@ -177,6 +183,20 @@ func fileSize(path string) (int64, error) {
 		return 0, fmt.Errorf("pack: stat %s: %w", path, err)
 	}
 	return info.Size(), nil
+}
+
+// filterOutTests drops Go test files from the pack. Consumers don't run
+// them (they need the module context) and dropping them keeps the pack
+// small — treasure-chest goes from ~68KB to <20KB, atlas is unchanged.
+func filterOutTests(entries []string) []string {
+	out := entries[:0]
+	for _, e := range entries {
+		if strings.HasSuffix(e, "_test.go") {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
 }
 
 // collectEntries walks the include set and returns file relative paths in

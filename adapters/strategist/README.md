@@ -29,5 +29,17 @@ Internamente, o roteamento escolhe Atlas, Treasure Chest ou ambos.
 
 ## Status
 
-Placeholder — implementação será feita quando a Knowledge API estiver
-congelada e as duas skills tiverem release `0.1.0` estável.
+- `strategist.go` — scaffold executável em Go (contrato + testes).
+  - `Router` — resolução por capability (não por nome).
+  - `Piloted` — wrapper aplicando `Policy` (stale reads, degradação) +
+    telemetria (`TelemetrySink`), satisfazendo o mesmo
+    `KnowledgeProvider`.
+  - Constantes de piloto (`PilotCartografo`, `PilotJewelcrafter`).
+
+## O que falta (batches futuros)
+
+- Read-through cache por capability (evita chamar Prepare em cada Search).
+- Orçamento por missão (token budget, hard-fail no envelope).
+- Loop de health-refresh (Status periódico + failover automático).
+- Integração real com o runtime Strategist (envs, config, plugin
+  paths). O adapter é standalone hoje.
