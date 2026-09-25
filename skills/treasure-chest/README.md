@@ -5,9 +5,11 @@ recuperação de Jewels, Potions, runbooks, playbooks e aprendizados.
 
 ## Status
 
-`experimental` — o esqueleto está aqui como template. O conteúdo
-funcional será **exportado de outro projeto** existente e migrado
-preservando o padrão ORKA + Skills for Hire.
+`experimental` — versão `0.2.0` traz o **runtime importado do projeto
+strategist-skill** (72 arquivos Go, ~14k LOC) sob `runtime/`,
+implementando o contrato `platform/knowledge-api.KnowledgeProvider`.
+O acoplamento com `internal/*` do projeto-fonte foi eliminado (só um
+`domain/vocab.go` local de 22 linhas replicando 7 constantes de string).
 
 ## Capabilities publicadas
 
@@ -50,10 +52,28 @@ skillhire install treasure-chest
 
 *(CLI ainda não implementada.)*
 
-## Migração (a fazer)
+## Uso standalone
 
-- [ ] Importar domínio (Jewels, Potions, runbooks) do projeto de origem.
-- [ ] Congelar comportamento atual em fixtures de paridade.
-- [ ] Adicionar import idempotente de dados existentes.
-- [ ] Publicar adapter Strategist em `adapters/strategist/`.
-- [ ] Validar fallback e rollback.
+O binário `treasure-chest` (em `cmd/treasure-chest/` do repositório) é
+o protocolo standalone da skill:
+
+```bash
+treasure-chest prepare --root /path/to/workspace
+treasure-chest search  --root /path/to/workspace --intent "dependency upgrade"
+treasure-chest status  --root /path/to/workspace [--json]
+treasure-chest explain <jewel-id> --root /path/to/workspace
+```
+
+Todas as respostas carregam o `Envelope` da Knowledge API v1
+(`provider`, `version`, `schema_version`, `capabilities_used`,
+`freshness`, `trust`, `fallback_state`, `limitations`).
+
+## Migração (concluída em 0.2.0)
+
+- [x] Importar domínio (Jewels, Potions, runbooks) do projeto de origem.
+- [x] Desacoplar de `internal/*` do strategist-skill.
+- [x] Implementar `KnowledgeProvider` (Prepare/Search/Refresh/Status/Explain).
+- [x] Expor CLI standalone.
+- [ ] Ranking real usando `ScoringPolicy` do domínio (batch futuro).
+- [ ] Refresh incremental por diff (batch futuro).
+- [ ] Adapter Strategist real em `adapters/strategist/` (batch futuro).

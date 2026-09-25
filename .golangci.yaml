@@ -4,6 +4,7 @@ version: "2"
 # subset of strategist-skill's list that is universally useful.
 linters:
   enable:
+    - depguard
     - errcheck
     - gosec
     - staticcheck
@@ -13,6 +14,18 @@ linters:
     - ineffassign
     - unconvert
   settings:
+    depguard:
+      # Enforce the architectural boundary the arch doc calls for
+      # (standalone requirement, §3.5). Skills-for-Hire code must NEVER
+      # reach back into strategist-skill's module — the treasure-chest
+      # import migrated in Batch 4 was a one-off copy, and any future
+      # drift should fail lint loudly rather than land silently.
+      rules:
+        no-strategist-skill-imports:
+          list-mode: lax
+          deny:
+            - pkg: "github.com/SergioLacerda/strategist-skill"
+              desc: "skill-for-hire must not depend on strategist-skill — it consumes skills, it does not link them"
     errcheck:
       # Type assertions kept strict; blank assignment is our documented
       # "best-effort" signal (defer close, etc.) and is not a lint bug.
