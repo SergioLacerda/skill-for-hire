@@ -8,10 +8,14 @@ before:
     # not silently drift at release time.
     - go mod download
     - go mod verify
-    # Produce the skill packs alongside the CLI binaries so they land in
-    # dist/ and are picked up by the extra_files rule below.
+    # Build the CLI locally (Linux runner default) so the pack hook has a
+    # skillhire to run, then produce the skill packs into ./packs/. We do
+    # NOT write into ./dist/ from a before hook: goreleaser's
+    # "ensuring distribution directory" gate rejects a dist/ that a hook
+    # populated, so pack outputs live in their own directory and get
+    # uploaded via extra_files below.
     - go build -o bin/skillhire ./cmd/skillhire
-    - bash scripts/pack-skills.sh
+    - bash -c 'DIST_DIR=packs scripts/pack-skills.sh'
 
 builds:
   - id: skillhire
@@ -52,8 +56,8 @@ release:
   draft: false
   replace_existing_artifacts: true
   extra_files:
-    - glob: "dist/*.tar.gz"
-    - glob: "dist/*.tar.gz.sha256"
+    - glob: "packs/*.tar.gz"
+    - glob: "packs/*.tar.gz.sha256"
 
 changelog:
   sort: asc
