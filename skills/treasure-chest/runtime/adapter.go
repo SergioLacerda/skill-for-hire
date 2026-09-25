@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -105,10 +104,12 @@ func (a *Adapter) Prepare(_ context.Context, req ka.PrepareRequest) (ka.PrepareR
 	}, nil
 }
 
-// Search returns jewels and potions whose Statement contains any of the
-// query concepts (case-insensitive substring). Naive on purpose — the
-// domain already exposes richer filters, and richer ranking belongs in
-// a later batch that wires the domain's scoring.
+// Search returns jewels and potions ranked by relevance to the query.
+// Ranking policy lives in ranking.go and is deterministic across runs:
+// same input query + same prepared index -> same result order.
+//
+// TokenBudget is applied AFTER ranking so consumers get the top N most
+// relevant items rather than the first N encountered.
 func (a *Adapter) Search(_ context.Context, q ka.Query) (ka.SearchResult, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -122,52 +123,78 @@ func (a *Adapter) Search(_ context.Context, q ka.Query) (ka.SearchResult, error)
 
 	for _, list := range a.jewelsByChest {
 		for _, j := range list {
-			if !matchesAny(j.Statement, needles) && !matchesAny(j.Kind, needles) {
+			score, matched := jewelMatch(j, needles)
+			if !matched {
 				continue
 			}
 			items = append(items, ka.Item{
 				ID:            j.ID,
 				Kind:          "jewel",
-				Score:         1.0,
+				Score:         score,
+				Trust:         trustToFloat(j.Trust),
 				Freshness:     ka.FreshnessFresh,
 				Applicability: j.Status,
-				Reason:        "statement or kind matched query concept",
+				Reason:        jewelReason(j, needles),
 				Source: ka.Source{
-					Path:   firstSourceRef(j.SourceRefs),
-					Digest: "",
+					Path: firstSourceRef(j.SourceRefs),
 				},
 			})
-			if q.TokenBudget > 0 && len(items) >= q.TokenBudget {
-				break
-			}
 		}
 	}
 	for _, list := range a.potionsByChest {
 		for _, p := range list {
-			if !matchesAny(p.WhenToUse, needles) && !matchesAny(p.RunbookRef, needles) {
+			score, matched := potionMatch(p, needles)
+			if !matched {
 				continue
 			}
 			items = append(items, ka.Item{
 				ID:            p.ID,
 				Kind:          "potion",
-				Score:         0.9,
+				Score:         score,
+				Trust:         trustToFloat(p.Trust),
 				Freshness:     ka.FreshnessFresh,
 				Applicability: p.Status,
-				Reason:        "when_to_use or runbook_ref matched query concept",
+				Reason:        "when_to_use/runbook_ref matched query",
 				Source: ka.Source{
 					Path: p.RunbookRef,
 				},
 			})
-			if q.TokenBudget > 0 && len(items) >= q.TokenBudget {
-				break
-			}
 		}
+	}
+
+	rankItemsInPlace(items)
+	if q.TokenBudget > 0 && len(items) > q.TokenBudget {
+		items = items[:q.TokenBudget]
 	}
 
 	return ka.SearchResult{
 		Envelope: a.envelope(nil),
 		Items:    items,
 	}, nil
+}
+
+// jewelReason builds a compact, human-facing string explaining why a
+// jewel matched. Keeps the ranking explainable (arch doc §5.5).
+func jewelReason(j Jewel, needles []string) string {
+	if len(needles) == 0 {
+		return "no filter — matched by default"
+	}
+	// Cheap short-circuit: identify the strongest signal.
+	for _, n := range needles {
+		if containsFold(j.Statement, n) {
+			return "statement matched query concept"
+		}
+		if anyContainsFold(j.Applicability.Scope, n) {
+			return "applicability.scope matched query concept"
+		}
+		if anyContainsFold(j.Applicability.AppliesWhen, n) {
+			return "applicability.applies_when matched query concept"
+		}
+		if containsFold(j.Kind, n) {
+			return "kind matched query concept"
+		}
+	}
+	return "curatorial score boost"
 }
 
 // Refresh currently reloads from the same root — the domain does not
@@ -280,22 +307,6 @@ func searchNeedles(q ka.Query) []string {
 	out = append(out, q.Concepts...)
 	out = append(out, q.Symbols...)
 	return out
-}
-
-func matchesAny(haystack string, needles []string) bool {
-	if len(needles) == 0 {
-		return true // no filter = match all
-	}
-	hay := strings.ToLower(haystack)
-	for _, n := range needles {
-		if n == "" {
-			continue
-		}
-		if strings.Contains(hay, strings.ToLower(n)) {
-			return true
-		}
-	}
-	return false
 }
 
 func firstSourceRef(refs []string) string {
