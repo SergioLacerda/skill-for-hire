@@ -28,6 +28,16 @@ build:
 	GOCACHE="$(GOCACHE)" GOMODCACHE="$(GOMODCACHE)" go build \
 		-ldflags="-s -w -X main.Version=$$(git describe --tags --dirty --always 2>/dev/null || echo dev)" \
 		-o "$(SKILLHIRE_BIN)" ./cmd/skillhire
+	@# Also compile every other cmd/ binary (treasure-chest, future
+	@# skill runtimes). Ensures a broken skill CLI fails CI, not just
+	@# skillhire drift.
+	@for cmddir in $$(ls -d cmd/*/ 2>/dev/null | sed 's:/$$::' | grep -v '^cmd/skillhire$$'); do \
+		bin="bin/$$(basename $$cmddir)$(EXE)"; \
+		echo "building $$bin"; \
+		GOCACHE="$(GOCACHE)" GOMODCACHE="$(GOMODCACHE)" go build \
+			-ldflags="-s -w -X main.Version=$$(git describe --tags --dirty --always 2>/dev/null || echo dev)" \
+			-o "$$bin" "./$$cmddir" || exit 1; \
+	done
 
 test:
 	GOCACHE="$(GOCACHE)" GOMODCACHE="$(GOMODCACHE)" go test -race ./...
