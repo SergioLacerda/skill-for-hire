@@ -127,8 +127,13 @@ como referência do formato e como gate de CI (`make lock-verify`).
 
 ## Documentação
 
+- [`docs/consumer-guide.md`](docs/consumer-guide.md) — **guia de
+  importação e integração para consumidores** (Strategist, agentes,
+  outras CLIs). Layout dos assets, fluxos de download/verify/extract,
+  lockfile, Knowledge API, adapters e exemplos práticos.
 - [`docs/architecture/`](docs/architecture/) — filosofia e arquitetura do
   ecossistema, padrão de skills, orientações IA-first.
+- [`docs/cli.md`](docs/cli.md) — superfície da CLI `skillhire`.
 
 ## Licença
 
