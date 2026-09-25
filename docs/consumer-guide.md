@@ -41,19 +41,47 @@ Para **cada** skill publicada, três arquivos ficam alinhados por nome:
 <name>-<version>.release.yaml    # bundle manifest (sidecar)
 ```
 
-Em `v0.0.1`, as skills disponíveis são:
+Skills disponíveis a partir de `v0.0.2`:
 
-| Skill | Versão | Capabilities publicadas |
-| --- | --- | --- |
-| `atlas` | `0.1.0` | `architecture.map`, `architecture.search`, `architecture.impact`, `adr.discover`, `adr.relate` |
-| `treasure-chest` | `0.1.0` | `knowledge.mine`, `knowledge.search`, `knowledge.curate`, `runbook.select`, `learning.reuse` |
+| Skill | Versão | Runtime | Capabilities publicadas |
+| --- | --- | --- | --- |
+| `atlas` | `0.1.0` | *hello-world* (só contrato) | `architecture.map`, `architecture.search`, `architecture.impact`, `adr.discover`, `adr.relate` |
+| `treasure-chest` | `0.2.0` | ✅ runtime Go + binário standalone | `knowledge.mine`, `knowledge.search`, `knowledge.curate`, `runbook.select`, `learning.reuse` |
 
-> **Nota:** ambas são "hello world" nesta versão — carregam o contrato
-> ORKA (`SKILL.md`, `skill.yaml`, `references/`) mas **sem runtime
-> implementado**. Consumidores devem tratá-las como *specialists* que
-> descrevem o contrato que uma implementação futura satisfaz.
+`treasure-chest` já implementa a Knowledge API v1 end-to-end (Prepare /
+Search / Refresh / Status / Explain). O binário `treasure-chest-<os>-<arch>`
+é publicado como asset da release. `atlas` segue como contrato
+sem implementação por enquanto — consumidores devem tratá-lo como a
+*specialist* que descreve o contrato que uma implementação futura
+satisfaz.
 
-### 1.3 Supply chain
+### 1.3 Binários das skills (novo em `v0.0.2`)
+
+Skills que shipam runtime executável ganham binários standalone
+próprios, mesma matriz do `skillhire`:
+
+```text
+treasure-chest-linux-amd64
+treasure-chest-linux-arm64
+treasure-chest-darwin-amd64
+treasure-chest-darwin-arm64
+treasure-chest-windows-amd64.exe
+treasure-chest-windows-arm64.exe
+```
+
+Uso:
+
+```bash
+treasure-chest prepare --root /path/to/workspace
+treasure-chest search  --root /path/to/workspace --intent "dependency upgrade"
+treasure-chest status  --root /path/to/workspace --json
+treasure-chest explain <jewel-id> --root /path/to/workspace
+```
+
+Todas as respostas seguem o envelope da Knowledge API v1
+(§5 abaixo).
+
+### 1.4 Supply chain
 
 - **CycloneDX SBOM** — `skillhire-<version>-sbom.cdx.json` cobrindo o
   grafo de dependências Go do CLI.
@@ -367,13 +395,13 @@ Consumidores podem instalar a company inteira ou skills individualmente.
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION=v0.0.1
+VERSION=v0.0.2
 BASE="https://github.com/SergioLacerda/skill-for-hire/releases/download/${VERSION}"
 DEST="./skills"
 
 mkdir -p "$DEST" && cd "$DEST"
 
-for skill in atlas-0.1.0 treasure-chest-0.1.0; do
+for skill in atlas-0.1.0 treasure-chest-0.2.0; do
   for suffix in tar.gz tar.gz.sha256 release.yaml; do
     curl -sSLO "${BASE}/${skill}.${suffix}"
   done

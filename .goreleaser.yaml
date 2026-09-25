@@ -37,10 +37,37 @@ builds:
     # Reproducibility: without this the embedded build timestamp is "now".
     mod_timestamp: "{{ .CommitTimestamp }}"
 
+  # treasure-chest is the standalone protocol for the treasure-chest
+  # skill (§9 of the arch doc). Same matrix as skillhire so a consumer
+  # on any supported platform can `curl && run` without cloning.
+  - id: treasure-chest
+    main: ./cmd/treasure-chest
+    binary: treasure-chest
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
 archives:
   - id: skillhire-binary
+    ids: [skillhire]
     formats: [binary]
     name_template: "skillhire-{{ .Os }}-{{ .Arch }}"
+
+  - id: treasure-chest-binary
+    ids: [treasure-chest]
+    formats: [binary]
+    name_template: "treasure-chest-{{ .Os }}-{{ .Arch }}"
 
 checksum:
   name_template: SHA256SUMS
