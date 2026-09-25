@@ -30,3 +30,7 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Build and release outputs (produced by make build / goreleaser).
+/bin/
+/dist/
