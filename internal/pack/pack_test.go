@@ -11,13 +11,18 @@ import (
 	"github.com/SergioLacerda/skill-for-hire/internal/pack"
 )
 
+const testGenerator = "skillhire@test"
+const testCommit = "0000000000000000000000000000000000000000"
+
 func TestPackAtlasProducesArchiveAndChecksum(t *testing.T) {
 	outDir := t.TempDir()
 	res, err := pack.Pack(pack.Options{
-		SkillDir:  "../../skills/atlas",
-		SkillName: "atlas",
-		Version:   "0.1.0",
-		OutDir:    outDir,
+		SkillDir:     "../../skills/atlas",
+		SkillName:    "atlas",
+		Version:      "0.1.0",
+		OutDir:       outDir,
+		Generator:    testGenerator,
+		SourceCommit: testCommit,
 	})
 	if err != nil {
 		t.Fatalf("pack failed: %v", err)
@@ -53,9 +58,11 @@ func TestPackDeterministicAcrossRuns(t *testing.T) {
 	dirA := t.TempDir()
 	dirB := t.TempDir()
 	opts := pack.Options{
-		SkillDir:  "../../skills/atlas",
-		SkillName: "atlas",
-		Version:   "0.1.0",
+		SkillDir:     "../../skills/atlas",
+		SkillName:    "atlas",
+		Version:      "0.1.0",
+		Generator:    testGenerator,
+		SourceCommit: testCommit,
 	}
 	optsA := opts
 	optsA.OutDir = dirA
@@ -73,6 +80,55 @@ func TestPackDeterministicAcrossRuns(t *testing.T) {
 	if a.SHA256 != b.SHA256 {
 		t.Fatalf("expected identical digests, got %s vs %s", a.SHA256, b.SHA256)
 	}
+	// The sidecar manifest must be reproducible too — otherwise
+	// digest-of-manifest checks by downstream consumers drift.
+	mA := mustReadFile(t, a.ManifestPath)
+	mB := mustReadFile(t, b.ManifestPath)
+	if mA != mB {
+		t.Fatalf("release manifest is not reproducible:\n--- A ---\n%s\n--- B ---\n%s", mA, mB)
+	}
+}
+
+func TestPackWritesReleaseManifest(t *testing.T) {
+	outDir := t.TempDir()
+	res, err := pack.Pack(pack.Options{
+		SkillDir:     "../../skills/atlas",
+		SkillName:    "atlas",
+		Version:      "0.1.0",
+		OutDir:       outDir,
+		Generator:    testGenerator,
+		SourceCommit: testCommit,
+	})
+	if err != nil {
+		t.Fatalf("pack: %v", err)
+	}
+	if res.ManifestPath == "" {
+		t.Fatal("ManifestPath empty")
+	}
+	body := mustReadFile(t, res.ManifestPath)
+	for _, want := range []string{
+		"name: atlas",
+		`version: "0.1.0"`,
+		"archive: atlas-0.1.0.tar.gz",
+		"digest: sha256:" + res.SHA256,
+		"generator: " + testGenerator,
+		"source_commit: " + testCommit,
+		"atlas/SKILL.md",
+		"atlas/skill.yaml",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("manifest missing %q\nfull:\n%s", want, body)
+		}
+	}
+}
+
+func mustReadFile(t *testing.T, path string) string {
+	t.Helper()
+	b, err := os.ReadFile(path) //nolint:gosec // path from test helper.
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(b)
 }
 
 func listArchive(t *testing.T, path string) []string {

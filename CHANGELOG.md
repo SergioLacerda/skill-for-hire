@@ -13,6 +13,17 @@ Todas as mudanças relevantes deste projeto são registradas aqui, seguindo
   capabilities.
 - Empacotamento reprodutível: `<name>-<version>.tar.gz` com layout ORKA
   e `.sha256` companion, digest determinístico entre runs.
+- **Bundle manifest sidecar** `<name>-<version>.release.yaml` com
+  `schema_version`, `name`, `version`, `archive`, `digest`, `size`,
+  `generator`, `source_commit` e `contents[]` (§5.5 do doc de
+  arquitetura).
+- **Knowledge API v1** provider-neutral em `platform/knowledge-api/`
+  (Go, stdlib only): interface `KnowledgeProvider` (Prepare / Search /
+  Refresh / Status / Explain), `Envelope` com provenance/freshness/
+  trust/fallback, erros normalizados (`ErrNotPrepared`,
+  `ErrIncompatibleVersion`, `ErrPermissionDenied`, `ErrSourceMissing`,
+  `ErrStale`, `ErrFallbackTriggered`, `ErrUnavailable`), enums para
+  Freshness/FallbackState/Decision/ScopeFilter.
 - Makefile e submakes (`go.mk`, `quality.mk`, `release.mk`).
 - Configuração `.goreleaser.yaml` v2 para binários `skillhire`
   multi-plataforma (linux/darwin/windows × amd64/arm64) + upload dos

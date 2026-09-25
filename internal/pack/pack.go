@@ -35,14 +35,21 @@ type Options struct {
 	// Timestamp is written into every tar header for reproducibility. If
 	// zero, the epoch is used.
 	Timestamp time.Time
+	// Generator identifies the tool that produced the archive. Ends up in
+	// the sidecar manifest so consumers can trace bundle provenance.
+	Generator string
+	// SourceCommit is the git sha the pack was built from, when known.
+	SourceCommit string
 }
 
 // Result reports what Pack produced.
 type Result struct {
 	ArchivePath  string
 	ChecksumPath string
+	ManifestPath string
 	SHA256       string
 	Size         int64
+	Contents     []string
 }
 
 // defaultInclude is the ORKA canonical top-level set. Each entry is
@@ -123,12 +130,40 @@ func Pack(opts Options) (*Result, error) {
 	if err := os.WriteFile(checksumPath, []byte(line), 0o644); err != nil { //nolint:gosec // 0644 is standard for a public digest file.
 		return nil, fmt.Errorf("pack: write checksum: %w", err)
 	}
+
+	manifestPath := filepath.Join(opts.OutDir, fmt.Sprintf("%s-%s.release.yaml", opts.SkillName, opts.Version))
+	contents := archiveContents(opts.SkillName, entries)
+	if err := writeManifest(manifestPath, manifest{
+		Name:          opts.SkillName,
+		Version:       opts.Version,
+		SchemaVersion: 1,
+		Digest:        "sha256:" + digest,
+		Size:          size,
+		Generator:     opts.Generator,
+		SourceCommit:  opts.SourceCommit,
+		Archive:       filepath.Base(archivePath),
+		Contents:      contents,
+	}); err != nil {
+		return nil, err
+	}
 	return &Result{
 		ArchivePath:  archivePath,
 		ChecksumPath: checksumPath,
+		ManifestPath: manifestPath,
 		SHA256:       digest,
 		Size:         size,
+		Contents:     contents,
 	}, nil
+}
+
+// archiveContents returns the archive-relative paths that made it into
+// the tarball, matching what an extractor sees.
+func archiveContents(archiveRoot string, entries []string) []string {
+	out := make([]string, len(entries))
+	for i, e := range entries {
+		out[i] = archiveRoot + "/" + e
+	}
+	return out
 }
 
 func fileSize(path string) (int64, error) {
