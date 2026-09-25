@@ -5,6 +5,37 @@ Todas as mudanças relevantes deste projeto são registradas aqui, seguindo
 
 ## [Unreleased]
 
+### Added — Waves 1-4 (pre-`v0.0.2` polish)
+
+- **Slim skill packs** — `internal/pack` filtra `*_test.go` por padrão
+  (opção `IncludeTests`), treasure-chest cai de 68 KB → 44 KB.
+- **Cross-compile `treasure-chest`** no `.goreleaser.yaml` — binários
+  para linux/darwin/windows × amd64/arm64 shippam como asset da release.
+- **`docs/consumer-guide.md`** atualizado para `v0.0.2`: seção nova
+  documentando o binário standalone.
+- **Testes do CLI `cmd/treasure-chest/`** cobrindo version, status
+  human+JSON, prepare-vazio, search em workspace vazio, explain de ID
+  desconhecido e prepare contra layout mínimo de chest.
+- **Boundary architectural via depguard** (`.golangci.yaml`): deny de
+  qualquer import `github.com/SergioLacerda/strategist-skill`;
+  substitui o `architecture_test.go` do fonte que dependia de
+  `internal/conformance`.
+- **Security review pass** — 0 findings HIGH/MEDIUM contra o diff
+  (transcript no chat da sessão).
+- **Ranking real** (`runtime/ranking.go`): substring naive substituído
+  por ranker explicável com pesos por campo (Statement +3, Scope +2,
+  AppliesWhen +2, Kind +1, AvoidWhen -4) e tie-breaker por
+  curatorial score. `TokenBudget` agora aplicado após ranking, não
+  antes.
+- **Refresh com delta real** — `Refresh` compara assinaturas
+  `fmt.Sprintf` antes e depois do reindex e devolve
+  `added/updated/removed` acurados; limitations flag deixa claro que
+  `Scope.Since`/`Scope.Paths` ainda são full reindex.
+- **Adapter Strategist executável** (`adapters/strategist/`):
+  `Router` resolve por capability, `Piloted` wrapper aplica `Policy`
+  (stale reads, degradação) + `TelemetrySink`, satisfazendo o mesmo
+  `KnowledgeProvider`. Constantes `PilotCartografo`/`PilotJewelcrafter`.
+
 ### Added — Batch 4 (treasure-chest runtime import)
 
 - **Domínio treasure-chest migrado** do repositório `strategist-skill`:

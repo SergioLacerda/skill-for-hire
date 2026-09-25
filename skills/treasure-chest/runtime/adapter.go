@@ -197,9 +197,15 @@ func jewelReason(j Jewel, needles []string) string {
 	return "curatorial score boost"
 }
 
-// Refresh currently reloads from the same root — the domain does not
-// yet expose a scoped diff. Callers see Added=0/Updated=0/Removed=0
-// until incremental refresh lands.
+// Refresh reloads the index from the workspace and reports how it
+// changed against the previous prepared state. The full reload is
+// unavoidable until git-aware incremental refresh lands (see wave 4c
+// TODO), but consumers still see accurate added/updated/removed counts.
+//
+// "updated" here means "same ID, different content signature". Content
+// is signed by fmt.Sprintf on the Jewel/Potion struct — sufficient to
+// detect changes without a hash dependency, and Go's %v produces a
+// stable representation for the value types in this domain.
 func (a *Adapter) Refresh(ctx context.Context, scope ka.Scope) (ka.RefreshResult, error) {
 	root := scope.Root
 	if root == "" {
@@ -210,12 +216,67 @@ func (a *Adapter) Refresh(ctx context.Context, scope ka.Scope) (ka.RefreshResult
 	if root == "" {
 		return ka.RefreshResult{}, ka.ErrNotPrepared
 	}
+
+	oldSigs := a.snapshotSignatures()
+
 	if _, err := a.Prepare(ctx, ka.PrepareRequest{Root: root}); err != nil {
 		return ka.RefreshResult{}, err
 	}
+
+	added, updated, removed := diffSignatures(oldSigs, a.snapshotSignatures())
+
+	limitations := []string{}
+	if len(scope.Since) > 0 || len(scope.Paths) > 0 {
+		limitations = append(limitations,
+			"Refresh does full reindex; Scope.Since and Scope.Paths are ignored until git-aware refresh lands")
+	}
+
 	return ka.RefreshResult{
-		Envelope: a.envelope([]string{"refresh does full reindex; incremental diff pending"}),
+		Envelope: a.envelope(limitations),
+		Added:    added,
+		Updated:  updated,
+		Removed:  removed,
 	}, nil
+}
+
+// snapshotSignatures captures a content signature per item ID from the
+// currently prepared index. Called before and after reload so we can
+// diff without deep struct equality.
+func (a *Adapter) snapshotSignatures() map[string]string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	sig := make(map[string]string, len(a.byID))
+	for id, j := range a.byID {
+		sig[id] = fmt.Sprintf("%v", *j)
+	}
+	for _, list := range a.potionsByChest {
+		for i := range list {
+			p := &list[i]
+			sig[p.ID] = fmt.Sprintf("%v", *p)
+		}
+	}
+	return sig
+}
+
+// diffSignatures returns the added/updated/removed counts between two
+// signature snapshots. Deterministic; tests rely on the exact triple.
+func diffSignatures(oldSig, newSig map[string]string) (added, updated, removed int) {
+	for id, s := range newSig {
+		prev, ok := oldSig[id]
+		switch {
+		case !ok:
+			added++
+		case prev != s:
+			updated++
+		}
+	}
+	for id := range oldSig {
+		if _, ok := newSig[id]; !ok {
+			removed++
+		}
+	}
+	return added, updated, removed
 }
 
 // Status reports provider identity plus item counts. Consumers that

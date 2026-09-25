@@ -1,5 +1,5 @@
 schema-version: 1
-generator: "skillhire@d6cb4de-dirty"
+generator: "skillhire@ce86d51-dirty"
 installed:
   atlas:
     version: "0.1.0"
@@ -9,7 +9,7 @@ installed:
     resolved-from: atlas-0.1.0.release.yaml
   treasure-chest:
     version: "0.2.0"
-    digest: sha256:e9dff168d65755cb38d2a740050569b52467fdf3d10c12f293bf6e849266e1c6
-    size: 44121
+    digest: sha256:9beb9dea0604d090f6cf98203998b1b6b5a999dd96ddbb2bf3930dc0d3d393ee
+    size: 44672
     source: monorepo:skills/treasure-chest
     resolved-from: treasure-chest-0.2.0.release.yaml
