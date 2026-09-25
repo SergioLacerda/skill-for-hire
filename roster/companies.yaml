@@ -1,0 +1,15 @@
+schema-version: 1
+
+# Companies são composições declarativas de skills.
+# Não contêm cópias — apenas referências e restrições de resolução.
+
+companies:
+  strategist-knowledge-pack:
+    displayName: Strategist Knowledge Pack
+    description: Bundle de conhecimento consumido pelo Strategist via adapter.
+    version: "0.1.0"
+    lifecycle: experimental
+    skills:
+      atlas: "^0.1"
+      treasure-chest: "^0.1"
+    optional: {}

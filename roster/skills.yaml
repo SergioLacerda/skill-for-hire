@@ -1,0 +1,40 @@
+schema-version: 1
+
+# Catálogo (roster) de skills conhecidas pelo Skills for Hire.
+# Registra identidade, versão, origem e integridade — não hospeda o código.
+
+skills:
+  atlas:
+    displayName: Atlas
+    description: Cartografia estrutural e documental de projetos.
+    version: "0.1.0"
+    lifecycle: experimental
+    source:
+      type: monorepo
+      path: skills/atlas
+    provides:
+      - architecture.map
+      - architecture.search
+      - architecture.impact
+      - adr.discover
+      - adr.relate
+    integrity:
+      algorithm: sha256
+      # digest calculado no pipeline de release
+
+  treasure-chest:
+    displayName: Treasure Chest
+    description: Mineração, curadoria, lifecycle e recuperação de conhecimento reutilizável.
+    version: "0.1.0"
+    lifecycle: experimental
+    source:
+      type: monorepo
+      path: skills/treasure-chest
+    provides:
+      - knowledge.mine
+      - knowledge.search
+      - knowledge.curate
+      - runbook.select
+      - learning.reuse
+    integrity:
+      algorithm: sha256

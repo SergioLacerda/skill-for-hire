@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillsforhire.dev/schemas/skill.schema.json",
+  "title": "Skills for Hire — skill.yaml",
+  "description": "Manifesto operacional de uma skill publicada no ecossistema Skills for Hire.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "skillsforhire.dev/v1"
+    },
+    "kind": {
+      "const": "Skill"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version", "owner", "lifecycle"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic Versioning; sempre em aspas para preservar string."
+        },
+        "displayName": { "type": "string" },
+        "description": { "type": "string" },
+        "owner": { "type": "string" },
+        "maintainers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": ["experimental", "beta", "stable", "deprecated", "retired"]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deprecationDate": { "type": "string", "format": "date" },
+        "replacedBy": { "type": "string" }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["entrypoint", "capabilities"],
+      "additionalProperties": true,
+      "properties": {
+        "entrypoint": {
+          "type": "string",
+          "description": "Caminho relativo à raiz da skill (tipicamente SKILL.md)."
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "capabilities": {
+          "type": "object",
+          "description": "Capacidades declaradas. Omissão implica denied (deny-by-default).",
+          "additionalProperties": true,
+          "properties": {
+            "network": { "$ref": "#/$defs/capabilityMode" },
+            "filesystem": { "$ref": "#/$defs/capabilityMode" },
+            "subprocess": { "$ref": "#/$defs/capabilityMode" },
+            "secrets": { "$ref": "#/$defs/capabilityMode" },
+            "destructiveActions": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "execution": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required": { "$ref": "#/$defs/dependencyList" },
+            "optional": { "$ref": "#/$defs/dependencyList" }
+          }
+        },
+        "composition": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "provides": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "conflictsWith": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "priority": { "type": "integer" }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "licenseFile": { "type": "string" },
+            "changelog": { "type": "string" },
+            "sourceRepository": { "type": "string" },
+            "integrity": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "capabilityMode": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": true,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "denied",
+            "read-only",
+            "workspace-read",
+            "workspace-write",
+            "allowlist"
+          ]
+        },
+        "hosts": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "names": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "dependencyList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version"],
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[-/][a-z0-9]+)*$"
+          },
+          "version": { "type": "string" },
+          "capability": { "type": "string" }
+        }
+      }
+    }
+  }
+}
