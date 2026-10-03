@@ -131,6 +131,9 @@ como referência do formato e como gate de CI (`make lock-verify`).
   importação e integração para consumidores** (Strategist, agentes,
   outras CLIs). Layout dos assets, fluxos de download/verify/extract,
   lockfile, Knowledge API, adapters e exemplos práticos.
+- [`docs/runbooks/`](docs/runbooks/) — **procedimentos passo-a-passo**
+  para criar nova skill com runtime, migrar skill de outro repo, bump
+  de versão e cut de release tag.
 - [`docs/architecture/`](docs/architecture/) — filosofia e arquitetura do
   ecossistema, padrão de skills, orientações IA-first.
 - [`docs/cli.md`](docs/cli.md) — superfície da CLI `skillhire`.
