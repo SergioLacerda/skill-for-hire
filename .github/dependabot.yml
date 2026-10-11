@@ -1,0 +1,28 @@
+# Dependabot proposes updates; it never merges. Every PR runs the full CI
+# and security gates before a human reviews it. Dependency Review
+# (.github/workflows/dependency-review.yml) examines the resulting delta.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "go"]
+
+  # Keeps the SHA pins in .github/workflows/*.yml current (version comment
+  # on each pin is updated together with the SHA).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "github-actions"]

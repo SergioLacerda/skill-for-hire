@@ -18,7 +18,7 @@ quem vai além disso.
 ## Pré-requisitos
 
 - `git status` limpo em `develop` (ou branch derivada dela).
-- Toolchain: Go 1.23+, `make`, `golangci-lint` v2.x, opcionalmente
+- Toolchain: Go 1.27+, `make`, `golangci-lint` v2.x, opcionalmente
   `goreleaser` v2.12+ para testar cross-compile local.
 - Nome da skill escolhido — kebab-case, único no `roster/skills.yaml`.
 

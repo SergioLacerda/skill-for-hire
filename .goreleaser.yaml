@@ -81,7 +81,7 @@ release:
     owner: SergioLacerda
     name: skill-for-hire
   draft: false
-  replace_existing_artifacts: true
+  replace_existing_artifacts: false
   extra_files:
     - glob: "packs/*.tar.gz"
     - glob: "packs/*.tar.gz.sha256"

@@ -24,7 +24,7 @@ do projeto-fonte, considere reescrever com base em
 - `git status` limpo em `develop`.
 - Repo-fonte clonado e acessível localmente (ou attachavel via
   `add_repo` se via Claude Code).
-- Toolchain: Go 1.23+, `make`, `golangci-lint` v2.x.
+- Toolchain: Go 1.27+, `make`, `golangci-lint` v2.x.
 
 ## Passos
 

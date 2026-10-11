@@ -3,7 +3,7 @@
 # Structure mirrors strategist-skill's split-by-concern layout: the root
 # file wires the CI aggregates; per-topic recipes live under make/.
 
-.PHONY: ci ci-lint ci-test help
+.PHONY: ci ci-lint ci-test ci-security help
 
 # Fail fast with a clear message when make cannot reach a POSIX shell
 # (typically PowerShell/cmd.exe on Windows). Without this the recipe lines
@@ -41,11 +41,13 @@ GOLANGCI_LINT        := $(shell which golangci-lint 2>/dev/null || echo $(GOPATH
 include make/go.mk
 include make/quality.mk
 include make/release.mk
+include make/security.mk
 
 ci-lint: fmt-check mod-check vet build
 ci-test: test validate-skills pack-skills lock-verify
+ci-security: security
 
-ci: ci-lint ci-test
+ci: ci-lint ci-test ci-security
 
 help:
 	@echo "Skills for Hire — common targets"
@@ -59,5 +61,8 @@ help:
 	@echo "  make lock-verify      Fail if skillhire.lock does not match the pack outputs"
 	@echo "  make snapshot         Local release via goreleaser (no publish)"
 	@echo "  make release-check    Validate the goreleaser configuration"
+	@echo "  make vuln             govulncheck: known vulnerabilities reachable from the module"
+	@echo "  make secrets          gitleaks: committed credentials in git history (redacted)"
+	@echo "  make security         vuln + secrets"
 	@echo "  make clean            Remove build and dist artifacts"
-	@echo "  make ci               ci-lint + ci-test aggregate"
+	@echo "  make ci               ci-lint + ci-test + ci-security aggregate"

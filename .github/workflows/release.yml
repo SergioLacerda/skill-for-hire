@@ -23,9 +23,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: "go.mod"
           cache: true
@@ -34,9 +36,9 @@ jobs:
         run: make ci
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
         with:
-          version: v2.5.0
+          version: v2.14.0
 
   release:
     needs: verify
@@ -47,11 +49,12 @@ jobs:
       id-token: write      # required for build-provenance OIDC token
       attestations: write  # required to publish the attestation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: "go.mod"
           cache: true
@@ -74,7 +77,7 @@ jobs:
         # The `before` hook in .goreleaser.yaml builds skillhire and packs
         # every skill into packs/, so the skills ship as release assets in
         # the same publish step as the CLI binaries.
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           distribution: goreleaser
           version: "~> v2"
@@ -86,7 +89,7 @@ jobs:
         # CycloneDX SBOM covers the module graph of the skillhire CLI at
         # this tag. Uploaded as a release asset so consumers can audit
         # the transitive dependency set without cloning.
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           artifact-name: skillhire-${{ github.ref_name }}-sbom.cdx.json
           output-file: skillhire-sbom.cdx.json
@@ -99,7 +102,7 @@ jobs:
         # checksum file already pairs each digest with its published
         # asset name (skillhire-<os>-<arch>), so the attested subject
         # matches what users actually download.
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-checksums: dist/SHA256SUMS
 
@@ -107,7 +110,7 @@ jobs:
         # Skill packs live outside dist/ (§ .goreleaser.yaml explanation)
         # and therefore aren't in SHA256SUMS. Attest them by path so the
         # tar.gz + .release.yaml pair also carries provenance.
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: |
             packs/*.tar.gz
