@@ -1,0 +1,14 @@
+# Review ownership for supply-chain-relevant paths. The last matching
+# pattern wins; keep the catch-all first.
+*                     @SergioLacerda
+
+/.github/             @SergioLacerda
+/doctrine/            @SergioLacerda
+/internal/            @SergioLacerda
+/roster/              @SergioLacerda
+/cmd/                 @SergioLacerda
+/.goreleaser.yaml     @SergioLacerda
+/Makefile             @SergioLacerda
+/make/                @SergioLacerda
+/go.mod               @SergioLacerda
+/go.sum               @SergioLacerda

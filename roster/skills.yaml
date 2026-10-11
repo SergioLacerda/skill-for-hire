@@ -25,7 +25,7 @@ skills:
   treasure-chest:
     displayName: Treasure Chest
     description: Mineração, curadoria, lifecycle e recuperação de conhecimento reutilizável.
-    version: "0.1.0"
+    version: "0.2.0"
     lifecycle: experimental
     source:
       type: monorepo

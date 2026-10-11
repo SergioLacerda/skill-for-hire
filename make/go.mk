@@ -53,4 +53,4 @@ validate-skills: build
 		echo "validate-skills: no skills found under $(SKILLS_DIR)/" >&2; \
 		exit 1; \
 	fi
-	./$(SKILLHIRE_BIN) validate $(SKILL_DIRS)
+	./$(SKILLHIRE_BIN) validate --roster roster/skills.yaml $(SKILL_DIRS)

@@ -1,6 +1,6 @@
 module github.com/SergioLacerda/skill-for-hire
 
-go 1.23
+go 1.27
 
 require (
 	github.com/spf13/cobra v1.8.1

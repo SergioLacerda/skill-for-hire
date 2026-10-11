@@ -37,4 +37,21 @@ go.work.sum
 /dist/
 /packs/
 
+# IA RUNTIMES
+.strategist
 .analysis
+.agents
+.claude
+.codex
+.cursor
+.gemini
+.cursor
+.github/prompts
+.vscode
+generated/
+.providence
+.github/copilot-instructions.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.strategist/.compiled/
