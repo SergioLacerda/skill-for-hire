@@ -19,6 +19,6 @@ jobs:
       # actions). Findings already present on the base branch are not
       # re-reported; Dependabot and `make vuln` cover those.
       - name: Dependency review
-        uses: actions/dependency-review-action@c74b580d73376b7750d3d2a50bfb8adc2c937507 # v3.1.5
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
